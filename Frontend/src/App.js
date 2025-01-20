@@ -5,7 +5,8 @@ import { BrowserRouter, Route, Switch, useLocation } from 'react-router-dom';
 import './App.css';
 
 import Home from './components/home/App';
-
+import Visu from './components/visu/App';
+import Bolly from './components/bolly/App';
 
 
 
@@ -32,7 +33,8 @@ class App extends Component {
 				<AnimatePresence >
 					<Switch>
 						<Route path="/" component={Home} exact />
-					
+						<Route path="/visu" component={Visu} exact />
+						<Route path="/bolly" component={Bolly} />
 					</Switch>
 				</AnimatePresence>
 			</div>
