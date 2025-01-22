@@ -7,7 +7,7 @@ import './App.css';
 import Home from './components/home/App';
 import Visu from './components/visu/App';
 import Bolly from './components/bolly/App';
-
+import Contact from './components/contact/App';
 
 
 class App extends Component {
@@ -35,6 +35,7 @@ class App extends Component {
 						<Route path="/" component={Home} exact />
 						<Route path="/visu" component={Visu} exact />
 						<Route path="/bolly" component={Bolly} />
+						<Route path="/contact" component={Contact} />
 					</Switch>
 				</AnimatePresence>
 			</div>
