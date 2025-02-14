@@ -6,9 +6,8 @@ from bs4 import BeautifulSoup
 from neomodel import config
 from graph_models import Person
 
-# Neo4j database configuration 
-#change username and password for database
-config.DATABASE_URL = "bolt://<username>:<password>@localhost:7687"
+# Neo4j database configuration
+config.DATABASE_URL = "bolt://neo4j:test1234@localhost:7687"
 
 # Queue initialization
 q = Queue(maxsize=1000)
@@ -50,11 +49,12 @@ additionSourceCount = 0
 
 
 async def scrape(link, curr, iterred, session):
+    """Scrapes Wikipedia pages and updates the Neo4j graph."""
     global additionSourceCount
     url2 = "https://en.wikipedia.org" + str(link.get("href"))
     person_name = str(link.get("title"))
-    x = person_name.split(" ")
-    if len(x) > 3 or person_name == curr.name or person_name in iterred:
+
+    if len(person_name.split(" ")) > 3 or person_name == curr.name or person_name in iterred:
         return None
     iterred.add(person_name)
 
@@ -73,46 +73,54 @@ async def scrape(link, curr, iterred, session):
         cont = await resp.text()
     soup2 = BeautifulSoup(cont, "html.parser")
 
+    # Check if person is alive
     isAlive = True
-    dict2 = soup2.find_all("table", class_="infobox")
-    if not dict2 or "Born" not in dict2[0].get_text():
+    infobox = soup2.find("table", class_="infobox")
+    if not infobox or "Born" not in infobox.get_text():
         return None
-    if "Died" in dict2[0].get_text():
+    if "Died" in infobox.get_text():
         isAlive = False
 
     tqdm.write(f'\n{person_name}')
 
+    # Extract text length
     text_dict = soup2.select(".mw-parser-output > p")
     c = sum(len(para.get_text().split()) for para in text_dict)
     if c < 1500:
         return None
     tqdm.write(f'Text length is {c}')
 
+    # Create new node
     now = Person(name=person_name)
+
+    # Extract first paragraph
     first_para = next((para.get_text(strip=True) for para in text_dict if para.get_text(strip=True)), "")
     line = first_para.split('\n')[0]
 
-    imagebox = soup2.select_one(".infobox-image")
-    if imagebox:
-        img_tag = imagebox.find("img")
-        if img_tag and 'src' in img_tag.attrs:
-            src = img_tag['src']
-            full_image_url = f"https:{src}"
-            setattr(now, "imgLink", full_image_url)
+    # Extract image from infobox using multiple possible selectors
+    imagebox = soup2.select_one(".infobox-image img, .infobox img, .thumbimage")
+    if imagebox and 'src' in imagebox.attrs:
+        now.imgLink = f"https:{imagebox['src']}"
+    else:
+        # Fallback: Try to find the image in the infobox
+        infobox_image = infobox.find("img")
+        if infobox_image and 'src' in infobox_image.attrs:
+            now.imgLink = f"https:{infobox_image['src']}"
 
+    now.alive = isAlive
+    now.pageLink = url2
 
-
-    setattr(now, "alive", isAlive)
-    setattr(now, "pageLink", url2)
-
+    # Determine if Indian
     isIndian = "Indian" in line
-    setattr(now, "indian", isIndian)
+    now.indian = isIndian
     if not isIndian:
         return None
 
+    # Assign occupation based on keywords
     for occupation, keywords in occupation_filters.items():
         setattr(now, occupation, any(keyword in line for keyword in keywords))
 
+    # Save and connect to the graph
     now.save()
     tqdm.write(f'SAVED {person_name}')
     curr.friends.connect(now)
@@ -122,6 +130,7 @@ async def scrape(link, curr, iterred, session):
 
 
 async def main():
+    """Main function to run the scraper and build the Neo4j graph."""
     global additionSourceCount
     async with aiohttp.ClientSession() as session:
         for category, sources in SOURCES.items():
@@ -136,9 +145,9 @@ async def main():
             additionSourceCount += 1
 
             try:
-                curr = Person(name=source).save()
-            except:
                 curr = Person.nodes.get(name=source)
+            except Person.DoesNotExist:
+                curr = Person(name=source).save()
 
             URL = "https://en.wikipedia.org/wiki/" + source.replace(" ", "_")
             async with session.get(URL) as resp:
