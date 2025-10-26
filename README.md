@@ -5,7 +5,8 @@ A graph Game of Indian celebrities built by scraping Wikipedia and other website
 
 ## Members
 - [Srijan Jain](https://github.com/Fremdder) | [Linkedin](https://www.linkedin.com/in/Fremder/) 
-- [Ayush Kumar](https://github.com/Guanidine4336) | [Linkedin](https://www.linkedin.com/in/ayush-kumar-743122256/) 
+- [Ayush Kumar](https://github.com/Guanidine4336) | [Linkedin](https://www.linkedin.com/in/ayush-kumar-743122256/)
+- [Aditya Raj Singh](https://github.com/Adityarajsingh2904) | [Linkedin](https://www.linkedin.com/in/thisis-aditya-raj-singh/) 
 
 ## Tech Stack Used
 - Neo4j Database Management System
